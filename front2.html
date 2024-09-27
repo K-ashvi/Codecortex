@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Price Prediction</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        #container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+        label, input, button {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        input {
+            padding: 8px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #results {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h2>Stock Price Prediction</h2>
+        <label for="stock-name">Enter Stock Ticker Symbol (e.g., AAPL or RELIANCE.NS):</label>
+        <input type="text" id="stock-name" placeholder="Enter stock symbol">
+        <button id="predict-btn">Predict</button>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        document.getElementById("predict-btn").addEventListener("click", function() {
+            const stockName = document.getElementById("stock-name").value;
+            fetch(`http://127.0.0.1:8000/predict?stock_name=${stockName}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        document.getElementById("results").innerHTML = `<p style="color: red;">${data.error}</p>`;
+                    } else {
+                        document.getElementById("results").innerHTML = `
+                            <h3>Predicted Stock Prices:</h3>
+                            <p>${data.predicted_prices}</p>
+                            <h4>Future Predictions for the Next 7 Days:</h4>
+                            <p>${data.future_predictions}</p>
+                            <p>Lowest predicted price: ${data.min_future_price} on ${data.min_future_date}</p>
+                            <p>Highest predicted price: ${data.max_future_price} on ${data.max_future_date}</p>
+                            <h4>Root Mean Squared Error (RMSE):</h4>
+                            <p>${data.rmse}</p>
+                        `;
+                    }
+                })
+                .catch(err => console.error("Error:", err));
+        });
+    </script>
+</body>
+</html>
