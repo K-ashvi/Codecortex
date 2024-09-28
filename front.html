@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Price Prediction</title>
+    <style>
+        body {
+            font-family: 'Helvetica', Arial, sans-serif;
+            background-color: #000453;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #container {
+            max-width: 600px;
+            background-color: white;
+            padding: 20px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        label {
+            color: #000453;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        input,
+        button {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        input {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        h2 {
+            color: #000453;
+            text-align: center;
+        }
+
+        button {
+            padding: 12px;
+            background-color: #000453;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #494d99;
+        }
+
+        #results {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container">
+        <div id="class">
+            <h2>Stock Price Prediction</h2>
+            <label for="stock-name">Enter Stock Ticker Symbol (e.g., AAPL or RELIANCE.NS):</label>
+            <input type="text" id="stock-name" placeholder="Enter stock symbol">
+            <button id="predict-btn">Predict</button>
+
+            <div id="results"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("predict-btn").addEventListener("click", function () {
+            const stockName = document.getElementById("stock-name").value;
+            fetch(`http://127.0.0.1:8000/predict?stock_name=${stockName}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        document.getElementById("results").innerHTML = `<p style="color: red;">${data.error}</p>`;
+                    } else {
+                        document.getElementById("results").innerHTML = `
+                            <h4>Future Predictions for the Next 7 Days:</h4>
+                            <p>${data.future_predictions}</p>
+                            <p><b>Lowest predicted price:</b> ${data.min_future_price} on ${data.min_future_date}</p>
+                            <p><b>Highest predicted price:</b> ${data.max_future_price} on ${data.max_future_date}</p>
+                        `;
+                    }
+                })
+                .catch(err => console.error("Error:", err));
+        });
+    </script>
+</body>
+
+</html>
