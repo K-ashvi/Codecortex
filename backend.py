@@ -11,6 +11,8 @@ from tensorflow.keras.layers import Dense, LSTM
 from sklearn.metrics import mean_squared_error
 from datetime import datetime, timedelta
 import os
+from tensorflow.keras.callbacks import EarlyStopping
+import requests
 
 app = FastAPI()
 
@@ -29,6 +31,31 @@ app.add_middleware(
 
 # Mount the static directory to serve front2.html
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# API key for Alpha Vantage (you need to get your own API key from https://www.alphavantage.co)
+ALPHA_VANTAGE_API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY", "CU0XXH9AAHUAPR91")
+
+def get_stock_rating(stock_symbol):
+    """
+    Get the stock rating from Alpha Vantage API.
+    """
+    url = f"https://www.alphavantage.co/query"
+    params = {
+        "function": "OVERVIEW",
+        "symbol": stock_symbol,
+        "apikey": ALPHA_VANTAGE_API_KEY
+    }
+    response = requests.get(url, params=params)
+    if response.status_code == 200:
+        data = response.json()
+        if "Symbol" in data:
+            rating = data.get("AnalystTargetPrice", "N/A")
+            recommendation = data.get("RecommendationKey", "N/A")
+            score = data.get("EPS", "N/A")  # Example: using EPS (Earnings Per Share) as the score
+            return {"rating": rating, "rating_recommendation": recommendation, "score": score}
+        else:
+            return {"rating": "Unavailable", "rating_recommendation": "Unavailable", "score": "Unavailable"}
+    return {"rating": "Unavailable", "rating_recommendation": "Unavailable", "score": "Unavailable"}
 
 @app.get("/", response_class=HTMLResponse)
 async def read_frontend():
@@ -61,12 +88,13 @@ def predict(stock_name: str = Query(..., description="Stock ticker symbol")):
 
         # Model training
         model = Sequential()
-        model.add(LSTM(units=50, return_sequences=True, input_shape=(x_train.shape[1], 1)))
-        model.add(LSTM(units=50, return_sequences=False))
+        model.add(LSTM(units=100, return_sequences=True, input_shape=(x_train.shape[1], 1)))
+        model.add(LSTM(units=100, return_sequences=False))
         model.add(Dense(units=25))
         model.add(Dense(units=1))
         model.compile(optimizer='adam', loss='mean_squared_error')
-        model.fit(x_train, y_train, batch_size=64, epochs=10)
+        early_stopping = EarlyStopping(monitor='loss', patience=5, restore_best_weights=True)
+        model.fit(x_train, y_train, batch_size=64, epochs=10, callbacks=[early_stopping])
 
         test_data = scaled_data[train_len - 60:]
         x_test = [test_data[i-60:i, 0] for i in range(60, len(test_data))]
@@ -95,14 +123,16 @@ def predict(stock_name: str = Query(..., description="Stock ticker symbol")):
 
         currency_symbol = "₹" if stock_name.endswith(".NS") else "$"
 
+        # Get stock rating
+        stock_rating = get_stock_rating(stock_name)
+
         return {
-            "predicted_prices": predicted_prices.tolist(),
             "future_predictions": future_predictions.tolist(),
             "min_future_price": f"{currency_symbol}{min_future_price:.2f}",
             "min_future_date": str(min_future_date.date()),
             "max_future_price": f"{currency_symbol}{max_future_price:.2f}",
             "max_future_date": str(max_future_date.date()),
-            "rmse": f"{rmse:.2f}"
+            "stock_rating": stock_rating
         }
     else:
         return {"error": f"Could not retrieve data for stock: {stock_name}"}
