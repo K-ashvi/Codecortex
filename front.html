@@ -92,9 +92,29 @@
                     if (data.error) {
                         document.getElementById("results").innerHTML = `<p style="color: red;">${data.error}</p>`;
                     } else {
+                        let tableRows = '';
+                        data.future_predictions.forEach(prediction => {
+                            tableRows += `
+                                <tr>
+                                    <td>${prediction.date}</td>
+                                    <td>${prediction.price}</td>
+                                </tr>
+                            `;
+                        });
+
                         document.getElementById("results").innerHTML = `
                             <h4>Future Predictions for the Next 7 Days:</h4>
-                            <p>${data.future_predictions}</p>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Predicted Price</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${tableRows}
+                                </tbody>
+                            </table>
                             <p><b>Lowest predicted price:</b> ${data.min_future_price} on ${data.min_future_date}</p>
                             <p><b>Highest predicted price:</b> ${data.max_future_price} on ${data.max_future_date}</p>
                         `;
